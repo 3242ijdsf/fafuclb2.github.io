@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>实验六</title>
+    <style>
+        html,
+        body {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        #viewDiv {
+            height: calc(100% - 60px);
+        }
+
+        #header {
+            background-color: #F6F6F6;
+            color: black;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            background-image: url("https://img0.baidu.com/it/u=449839027,3570249041&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=666");
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        #header img {
+            height: 60px;
+        }
+
+        #title {
+            font-size: 30px;
+            line-height: 60px;
+        }
+
+        #smalltitle {
+            font-size: 19px;
+            color: #666;
+            margin-top: 5px;
+            margin-left: 20px;
+            /* 增加间距 */
+        }
+
+        #right-text {
+            position: absolute;
+            /* 使用绝对定位 */
+            right: 20px;
+            /* 将文字放置在容器的右侧 */
+            top: 50%;
+            /* 将文字垂直居中 */
+            transform: translateY(-50%);
+            /* 调整文字位置 */
+            font-size: 14px;
+            /* 设置字体大小 */
+            color: #666;
+            /* 设置字体颜色 */
+            font-style: italic;
+        }
+    </style>
+
+    <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css" />
+    <script src="https://js.arcgis.com/4.29/"></script>
+
+    <script>
+        require(["esri/Map",
+            "esri/views/MapView",
+            "esri/layers/FeatureLayer",
+            "esri/widgets/ScaleBar",
+            "esri/widgets/Search",
+            "esri/widgets/Legend",
+            "esri/widgets/Home",
+            "esri/widgets/LayerList",
+            "esri/widgets/Locate",
+            "esri/rest/locator",
+            "esri/widgets/Compass",
+            "esri/widgets/Fullscreen",
+            "esri/widgets/Measurement",
+            "esri/widgets/AreaMeasurement2D",
+            "esri/widgets/DistanceMeasurement2D"
+
+
+        ],
+            (Map, MapView, FeatureLayer, ScaleBar, Search, Legend, Home, LayerList, Locate, locator, Compass, Fullscreen, Measurement, AreaMeasurement2D, DistanceMeasurement2D) => {
+                const sports = new FeatureLayer({
+                    url: "https://www.geosceneonline.cn/server/rest/services/Hosted/台江区健身/FeatureServer/0"
+                });
+
+                const medicals = new FeatureLayer({
+                    url: "https://www.geosceneonline.cn/server/rest/services/Hosted/台江区医疗保障点/FeatureServer/0"
+                });
+
+                // Set up a locator url using the world geocoding service
+                const locatorUrl = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer";
+
+                const map1 = new Map({
+                    basemap: "topo",
+                    layers: [sports, medicals]         //
+                });
+
+                const view1 = new MapView({
+                    container: "viewDiv",
+                    map: map1,
+                    zoom: 14,
+                    center: [119.3200, 26.062] // longitude, latitude
+                });
+
+                //添加指南针-----------------
+                let compass = new Compass({
+                    view: view1
+                });
+                // Add the compass to the top left corner of the MapView
+                view1.ui.add(compass, "top-left");
+                //添加指南针-----------------
+
+                //添加全屏微件-------------------------
+                fullscreen = new Fullscreen({
+                    view: view1
+                });
+                view1.ui.add(fullscreen, "top-left");
+                //添加全屏微件-------------------------
+
+
+                //添加比例尺------------------------------
+                let scaleBar = new ScaleBar({
+                    view: view1,
+                    style: "ruler",
+                    unit: "metric"
+                });
+                // Add widget to the bottom left corner of the view
+                view1.ui.add(scaleBar, {
+                    position: "bottom-left",
+
+                });
+                //添加比例尺------------------------------
+
+                //添加搜索框------------------------------
+                const searchWidget = new Search({
+                    view: view1,
+                    label: "请输入要查询的地点……"
+                });
+                // Adds the search widget below other elements in
+                // the top left corner of the view
+                view1.ui.add(searchWidget, {
+                    position: "top-right",
+                    index: 2
+                });
+                //添加搜索框------------------------------
+
+                //添加图例--------------------------------
+                let legend = new Legend({
+                    view: view1,
+                    // title: "台江区运动健身点",
+                    layer: "sports"
+                });
+
+                view1.ui.add(legend, "bottom-right");
+                //添加图例--------------------------------
+
+                //添加返回初始界面按钮-----------
+                let homeWidget = new Home({
+                    view: view1
+                });
+                // adds the home widget to the top left corner of the MapView
+                view1.ui.add(homeWidget, "top-left");
+                //添加返回初始界面按钮-----------
+
+                //添加图层列表--------------------
+                let layerList = new LayerList({
+                    view: view1
+                });
+                // Adds widget below other elements in the top left corner of the view
+                view1.ui.add(layerList, {
+                    position: "bottom-right"
+                });
+                //添加图层列表--------------------
+
+                //点击弹窗事件
+                view1.popupEnabled = false;
+                view1.on("click", (event) => {
+                    // Get the coordinates of the click on the view
+                    const lat = Math.round(event.mapPoint.latitude * 1000) / 1000;
+                    const lon = Math.round(event.mapPoint.longitude * 1000) / 1000;
+                    view1.openPopup({
+                        // Set the popup's title to the coordinates of the location
+                        title: "经度：" + lon + ", 纬度：" + lat,
+                        location: event.mapPoint // Set the location of the popup to the clicked location
+                    });
+                    const params = {
+                        location: event.mapPoint
+                    };
+                    locator
+                        .locationToAddress(locatorUrl, params)
+                        .then((response) => {
+                            // If an address is successfully found, show it in the popup's content
+                            view1.popup.content = response.address;
+                        })
+                        .catch(() => {
+                            // If the promise fails and no result is found, show a generic message
+                            view1.popup.content = "No address was found for this location";
+                        });
+                });
+
+                //测量功能--------------------
+                let measurementDistance = new DistanceMeasurement2D({
+                    view: view1
+                });
+                view1.ui.add(measurementDistance, "bottom-left");
+                //测量功能--------------------
+
+
+
+
+            });
+    </script>
+</head>
+
+<body>
+    <div id="header">
+        <a href="http://www.taijiang.gov.cn/xjwz/zjtj/" target="_blank">
+            <img src="https://img2.baidu.com/it/u=539838164,1873674306&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=501"
+                alt="">
+        </a>
+        <span id="title">福州市台江区运动健身与医疗保障</span>
+        <span id="smalltitle">台江健体保健康，运动医疗双护航</span>
+        <span id="right-text"><a href="https://www.fafu.edu.cn/" target="_blank">Designed by Chenlongbin,FAFU</a></span>
+    </div>
+    <div id="viewDiv"></div>
+</body>
+
+</html>
